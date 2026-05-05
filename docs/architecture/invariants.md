@@ -1,29 +1,19 @@
-# Invariants MCSOS 260502 — Baseline M0
-## Repository invariants
-1. Repository utama berada di filesystem Linux WSL.
-2. Semua generated artifact berada di `build/` atau lokasi generated yang 
-terdokumentasi.
-3. Source, dokumen, dan script validasi dikomit ke Git.
-4. File generated besar seperti image, object, ISO, dan log penuh tidak 
-dikomit kecuali diminta sebagai fixture.
-## Toolchain invariants
-1. Setiap praktikum mencatat versi tool pada `build/meta/toolchain
-versions.txt` atau file metadata setara.
-2. Compiler target harus dinyatakan eksplisit; kernel tidak boleh diam
-diam memakai ABI host.
-3. Object smoke test harus diperiksa dengan `readelf`, `objdump`, atau 
-tool setara.
-4. Flag freestanding dan red-zone policy harus terdokumentasi sebelum kode 
-kernel nyata dibuat.
-## Documentation invariants
-1. Requirement harus memiliki metode verifikasi.
-2. Risiko harus memiliki mitigasi atau trigger review.
-3. Threat model harus ada sejak M0 dan diperbarui ketika subsistem baru 
-ditambahkan.
-4. Readiness label harus berbasis bukti.
-## Evidence invariants
-1. Klaim “berhasil” harus memiliki command output, log, checksum, 
-screenshot, commit, atau artefak yang dapat diperiksa.
-2. Error tidak boleh dihapus dari laporan; error harus diklasifikasi dan 
-dianalisis.
-3. Setiap rollback harus didokumentasikan.
+# MCSOS Toolchain and Environment Invariants
+
+## M1 Invariants
+
+1. **Repository Location**: Repository MCSOS harus berada di filesystem Linux WSL (contoh: `~/src/mcsos`), BUKAN di `/mnt/c` atau mount Windows lain.
+
+2. **Generated Artifacts**: Semua generated artifact harus berada di direktori `build/` dan TIDAK boleh dikomit ke Git.
+
+3. **Tool Availability**: Semua build tool wajib tersedia melalui PATH WSL dan tercatat pada `build/meta/toolchain-versions.txt`.
+
+4. **Proof Object Format**: Proof object file (`freestanding_probe.o`) harus bertipe ELF64 x86_64 dan dihasilkan dengan compiler dalam mode freestanding.
+
+5. **Undefined Symbols**: Proof ELF (`freestanding_probe.elf`) tidak boleh memiliki undefined symbol apapun.
+
+6. **Freestanding Runtime**: Kompilasi kernel dan proof tidak boleh bergantung pada hosted libc, startup object host, dynamic linker, exception runtime, atau stack protector runtime host.
+
+7. **Emulator Ready**: QEMU x86_64, machine q35, dan OVMF firmware harus terdeteksi dan tersedia sebelum M2 dimulai.
+
+8. **Toolchain Audit**: Setiap perubahan toolchain, versi distro, atau konfigurasi WSL harus dicatat dalam readiness review.
