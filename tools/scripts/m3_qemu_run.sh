@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 set -Eeuo pipefail
 
 ISO="${1:-build/mcsos.iso}"
@@ -15,8 +14,7 @@ fail() {
     exit 1
 }
 
-test -f "$ISO" \
-    || fail "ISO tidak ditemukan: $ISO"
+test -f "$ISO" || fail "ISO tidak ditemukan: $ISO"
 
 command -v qemu-system-x86_64 >/dev/null 2>&1 \
     || fail "qemu-system-x86_64 tidak ditemukan"
