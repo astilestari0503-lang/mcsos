@@ -9,3 +9,12 @@ build/
 .cache/
 .vscode/
 .DS_Store
+build/
+iso_root/
+limine/
+*.iso
+*.log
+*.o
+*.elf
+*.map
+*.disasm.txt
