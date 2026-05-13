@@ -2,7 +2,6 @@
 SHELL := /usr/bin/env bash
 
 BUILD_DIR := build
-
 KERNEL := $(BUILD_DIR)/kernel.elf
 BP_KERNEL := $(BUILD_DIR)/kernel.breakpoint.elf
 PANIC_KERNEL := $(BUILD_DIR)/kernel.panic.elf
@@ -20,42 +19,9 @@ OBJDUMP := objdump
 READELF := readelf
 NM := nm
 
-COMMON_CFLAGS := \
-	--target=x86_64-unknown-none-elf \
-	-std=c17 \
-	-ffreestanding \
-	-fno-builtin \
-	-fno-stack-protector \
-	-fno-stack-check \
-	-fno-pic \
-	-fno-pie \
-	-fno-lto \
-	-m64 \
-	-march=x86-64 \
-	-mabi=sysv \
-	-mno-red-zone \
-	-mno-mmx \
-	-mno-sse \
-	-mno-sse2 \
-	-mcmodel=kernel \
-	-Wall \
-	-Wextra \
-	-Werror \
-	-Ikernel/arch/x86_64/include \
-	-Ikernel/include
+COMMON_CFLAGS := --target=x86_64-unknown-none-elf -std=c17 -ffreestanding -fno-builtin -fno-stack-protector -fno-stack-check -fno-pic -fno-pie -fno-lto -m64 -march=x86-64 -mabi=sysv -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mcmodel=kernel -Wall -Wextra -Werror -Ikernel/arch/x86_64/include -Ikernel/include
 
-COMMON_ASFLAGS := \
-	--target=x86_64-unknown-none-elf \
-	-ffreestanding \
-	-fno-pic \
-	-fno-pie \
-	-m64 \
-	-mno-red-zone \
-	-Wall \
-	-Wextra \
-	-Werror \
-	-Ikernel/arch/x86_64/include \
-	-Ikernel/include
+COMMON_ASFLAGS := --target=x86_64-unknown-none-elf -ffreestanding -fno-pic -fno-pie -m64 -mno-red-zone -Wall -Wextra -Werror -Ikernel/arch/x86_64/include -Ikernel/include
 
 CFLAGS := $(COMMON_CFLAGS)
 ASFLAGS := $(COMMON_ASFLAGS)
@@ -63,28 +29,18 @@ ASFLAGS := $(COMMON_ASFLAGS)
 BP_CFLAGS := $(COMMON_CFLAGS) -DMCSOS_M4_TRIGGER_BREAKPOINT=1
 PANIC_CFLAGS := $(COMMON_CFLAGS) -DMCSOS_M4_TRIGGER_PANIC=1
 
-LDFLAGS := \
-	-nostdlib \
-	-static \
-	-z max-page-size=0x1000 \
-	-T linker.ld
+LDFLAGS := -nostdlib -static -z max-page-size=0x1000 -T linker.ld
 
 SRC_C := $(shell find kernel -name '*.c' | LC_ALL=C sort)
 SRC_S := $(shell find kernel -name '*.S' | LC_ALL=C sort)
 
-OBJ := \
-	$(patsubst %.c,$(BUILD_DIR)/normal/%.o,$(SRC_C)) \
-	$(patsubst %.S,$(BUILD_DIR)/normal/%.o,$(SRC_S))
+OBJ := $(patsubst %.c,$(BUILD_DIR)/normal/%.o,$(SRC_C)) $(patsubst %.S,$(BUILD_DIR)/normal/%.o,$(SRC_S))
 
-BP_OBJ := \
-	$(patsubst %.c,$(BUILD_DIR)/breakpoint/%.o,$(SRC_C)) \
-	$(patsubst %.S,$(BUILD_DIR)/breakpoint/%.o,$(SRC_S))
+BP_OBJ := $(patsubst %.c,$(BUILD_DIR)/breakpoint/%.o,$(SRC_C)) $(patsubst %.S,$(BUILD_DIR)/breakpoint/%.o,$(SRC_S))
 
-PANIC_OBJ := \
-	$(patsubst %.c,$(BUILD_DIR)/panic/%.o,$(SRC_C)) \
-	$(patsubst %.S,$(BUILD_DIR)/panic/%.o,$(SRC_S))
+PANIC_OBJ := $(patsubst %.c,$(BUILD_DIR)/panic/%.o,$(SRC_C)) $(patsubst %.S,$(BUILD_DIR)/panic/%.o,$(SRC_S))
 
-.PHONY: all build breakpoint panic inspect audit clean distclean
+.PHONY: all build breakpoint panic inspect audit clean distclean iso
 
 all: build inspect
 
@@ -152,17 +108,11 @@ audit: inspect breakpoint panic
 >$(READELF) -S $(KERNEL) | grep -q '.text'
 >$(READELF) -S $(KERNEL) | grep -q '.rodata'
 
+iso: $(KERNEL)
+>bash tools/scripts/make_iso.sh $(KERNEL) build/mcsos.iso
+
 clean:
 >rm -rf $(BUILD_DIR)
 
-# ISO target
-iso: $(KERNEL)
->mkdir -p iso_root
->cp $(KERNEL) iso_root/kernel.elf
->mkdir -p iso_root/boot
->cp build/kernel.elf iso_root/boot/
->xorriso -as mkisofs -R -J -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot -e limine-uefi-cd.bin -no-emul-boot -o build/mcsos.iso iso_root/
-
 distclean: clean
 >rm -rf iso_root limine evidence
-
