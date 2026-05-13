@@ -155,5 +155,14 @@ audit: inspect breakpoint panic
 clean:
 >rm -rf $(BUILD_DIR)
 
+# ISO target
+iso: $(KERNEL)
+>mkdir -p iso_root
+>cp $(KERNEL) iso_root/kernel.elf
+>mkdir -p iso_root/boot
+>cp build/kernel.elf iso_root/boot/
+>xorriso -as mkisofs -R -J -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot -e limine-uefi-cd.bin -no-emul-boot -o build/mcsos.iso iso_root/
+
 distclean: clean
 >rm -rf iso_root limine evidence
+
