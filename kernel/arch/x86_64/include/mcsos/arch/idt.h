@@ -3,16 +3,21 @@
 
 #include <stdint.h>
 
-#define X86_64_IDT_VECTOR_COUNT 256u
+#define X86_64_IDT_VECTOR_COUNT     256u
 #define X86_64_KERNEL_CODE_SELECTOR 0x28u
-#define X86_64_IDT_GATE_INTERRUPT 0x8Eu
-#define X86_64_IDT_GATE_TRAP 0x8Fu
+
+#define X86_64_IDT_GATE_INTERRUPT   0x8Eu
+#define X86_64_IDT_GATE_TRAP        0x8Fu
+
+#define X86_64_IDT_PRESENT          0x80u
+#define X86_64_IDT_DPL0             0x00u
+#define X86_64_IDT_DPL3             0x60u
 
 typedef struct __attribute__((packed)) {
     uint16_t offset_low;
     uint16_t selector;
-    uint8_t ist;
-    uint8_t type_attributes;
+    uint8_t  ist;
+    uint8_t  type_attributes;
     uint16_t offset_mid;
     uint32_t offset_high;
     uint32_t reserved;

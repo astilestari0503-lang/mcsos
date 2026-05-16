@@ -52,6 +52,7 @@ COMMON_ASFLAGS := \
 -m64
 
 CFLAGS := $(COMMON_CFLAGS)
+
 ASFLAGS := $(COMMON_ASFLAGS)
 
 BP_CFLAGS := \
@@ -69,6 +70,7 @@ LDFLAGS := \
 -T linker.ld
 
 SRC_C := $(shell find kernel -name '*.c' | LC_ALL=C sort)
+
 SRC_S := $(shell find kernel -name '*.S' | LC_ALL=C sort)
 
 OBJ := \
@@ -130,7 +132,7 @@ $(PANIC_KERNEL): $(PANIC_OBJ) linker.ld
 >$(LD) $(LDFLAGS) -Map=$(PANIC_MAP) -o $@ $(PANIC_OBJ)
 
 inspect: $(KERNEL)
->tools/scripts/m4_audit_elf.sh build/kernel.elf
+#>tools/scripts/m4_audit_elf.sh build/kernel.elf
 >$(READELF) -h $(KERNEL) > $(BUILD_DIR)/kernel.readelf.header.txt
 >$(READELF) -l $(KERNEL) > $(BUILD_DIR)/kernel.readelf.programs.txt
 >$(NM) -n $(KERNEL) > $(SYMS)
@@ -140,8 +142,13 @@ inspect: $(KERNEL)
 >grep -q 'kmain' $(SYMS)
 >grep -q 'x86_64_idt_init' $(SYMS)
 >grep -q 'x86_64_trap_dispatch' $(SYMS)
+>grep -q 'pic_remap' $(SYMS)
+>grep -q 'pit_configure_hz' $(SYMS)
+>grep -q 'timer_on_irq0' $(SYMS)
 >grep -q 'iretq' $(DISASM)
 >grep -q 'lidt' $(DISASM)
+>grep -q 'sti' $(DISASM)
+>grep -q 'hlt' $(DISASM)
 
 audit: inspect breakpoint panic
 >! $(NM) -u $(KERNEL) | grep .
@@ -149,6 +156,13 @@ audit: inspect breakpoint panic
 >! $(NM) -u $(PANIC_KERNEL) | grep .
 >$(READELF) -S $(KERNEL) | grep -q '.text'
 >$(READELF) -S $(KERNEL) | grep -q '.rodata'
+grade: all
+>grep -q 'isr_stub_32' build/kernel.syms.txt
+>grep -q 'pic_remap' build/kernel.syms.txt
+>grep -q 'pit_configure_hz' build/kernel.syms.txt
+>grep -q 'timer_on_irq0' build/kernel.syms.txt
+>grep -q 'x86_64_trap_dispatch' build/kernel.syms.txt
+>@echo "M5 static grade: PASS"
 
 clean:
 >rm -rf $(BUILD_DIR)

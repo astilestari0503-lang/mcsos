@@ -3,45 +3,77 @@
 
 #include <mcsos/arch/io.h>
 
-#define COM1_PORT 0x3F8u
-#define SERIAL_TIMEOUT_LIMIT 100000u
+#include <mcsos/kernel/serial.h>
 
-static int serial_transmit_empty(void) {
-    return (inb((uint16_t)(COM1_PORT + 5u)) & 0x20u) != 0;
-}
+#define COM1 0x3F8u
 
 void serial_init(void) {
-    outb((uint16_t)(COM1_PORT + 1u), 0x00u);
-    outb((uint16_t)(COM1_PORT + 3u), 0x80u);
-    outb((uint16_t)(COM1_PORT + 0u), 0x03u);
-    outb((uint16_t)(COM1_PORT + 1u), 0x00u);
-    outb((uint16_t)(COM1_PORT + 3u), 0x03u);
-    outb((uint16_t)(COM1_PORT + 2u), 0xC7u);
-    outb((uint16_t)(COM1_PORT + 4u), 0x0Bu);
+    outb(COM1 + 1u, 0x00u);
+    outb(COM1 + 3u, 0x80u);
+    outb(COM1 + 0u, 0x03u);
+    outb(COM1 + 1u, 0x00u);
+    outb(COM1 + 3u, 0x03u);
+    outb(COM1 + 2u, 0xC7u);
+    outb(COM1 + 4u, 0x0Bu);
 }
 
-void serial_putc(char c) {
-    uint32_t spin = 0u;
+static int serial_transmit_empty(void) {
+    return (inb(COM1 + 5u) & 0x20u) != 0;
+}
 
-    if (c == '\n') {
-        serial_putc('\r');
-    }
-
+void serial_write_char(char c) {
     while (!serial_transmit_empty()) {
-        if (++spin >= SERIAL_TIMEOUT_LIMIT) {
-            return;
-        }
+        __asm__ volatile ("pause");
     }
 
-    outb((uint16_t)COM1_PORT, (uint8_t)c);
+    outb(COM1, (uint8_t)c);
 }
 
-void serial_write(const char *s) {
-    if (s == (const char *)0) {
+void serial_write_string(const char *s) {
+    while (*s != '\0') {
+        if (*s == '\n') {
+            serial_write_char('\r');
+        }
+
+        serial_write_char(*s);
+
+        ++s;
+    }
+}
+
+void serial_write_hex64(uint64_t value) {
+    static const char digits[] =
+        "0123456789abcdef";
+
+    serial_write_string("0x");
+
+    for (int i = 60; i >= 0; i -= 4) {
+        serial_write_char(
+            digits[
+                (value >> (unsigned)i) & 0xFu
+            ]
+        );
+    }
+}
+
+void serial_write_dec64(uint64_t value) {
+    char buf[21];
+
+    size_t i = 0;
+
+    if (value == 0u) {
+        serial_write_char('0');
         return;
     }
 
-    while (*s != '\0') {
-        serial_putc(*s++);
+    while (value != 0u && i < sizeof(buf)) {
+        buf[i++] =
+            (char)('0' + (value % 10u));
+
+        value /= 10u;
+    }
+
+    while (i != 0u) {
+        serial_write_char(buf[--i]);
     }
 }

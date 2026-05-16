@@ -30,16 +30,31 @@ uint16_t x86_64_idt_limit_for_test(void) {
 }
 
 void x86_64_idt_init(void) {
+    /* Clear semua entry */
     for (uint16_t i = 0u; i < X86_64_IDT_VECTOR_COUNT; ++i) {
         x86_64_idt_set_gate((uint8_t)i, 0u, 0u);
     }
 
+    /* Exception vectors 0-31 (M4) */
     for (uint8_t vector = 0u; vector < 32u; ++vector) {
         uint8_t gate_type = X86_64_IDT_GATE_INTERRUPT;
         if (vector == 3u) {
             gate_type = X86_64_IDT_GATE_TRAP;
         }
-        x86_64_idt_set_gate(vector, (uint64_t)(uintptr_t)x86_64_exception_stubs[vector], gate_type);
+        x86_64_idt_set_gate(
+            vector,
+            (uint64_t)(uintptr_t)x86_64_exception_stubs[vector],
+            (uint8_t)(X86_64_IDT_PRESENT | X86_64_IDT_DPL0 | gate_type)
+        );
+    }
+
+    /* IRQ vectors 32-47 (M5) - PENTING! */
+    for (uint8_t vector = 32u; vector < 48u; ++vector) {
+        x86_64_idt_set_gate(
+            vector,
+            (uint64_t)(uintptr_t)x86_64_isr_stubs[vector - 32u],
+            (uint8_t)(X86_64_IDT_PRESENT | X86_64_IDT_DPL0 | X86_64_IDT_GATE_INTERRUPT)
+        );
     }
 
     idtr.limit = (uint16_t)(sizeof(idt) - 1u);
@@ -47,10 +62,13 @@ void x86_64_idt_init(void) {
 
     KERNEL_ASSERT(sizeof(x86_64_idt_entry_t) == 16u);
     KERNEL_ASSERT(idtr.limit == (uint16_t)((X86_64_IDT_VECTOR_COUNT * sizeof(x86_64_idt_entry_t)) - 1u));
+
     lidt(&idtr);
+
     log_key_value_hex64("idt_base", idtr.base);
     log_key_value_hex64("idt_limit", (uint64_t)idtr.limit);
     log_writeln("[M4] IDT loaded");
+    log_writeln("[M5] IDT extended to vector 47 for PIC IRQ");
 }
 
 void x86_64_trigger_breakpoint_for_test(void) {
