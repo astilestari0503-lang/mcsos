@@ -6,9 +6,22 @@
 #include <mcsos/kernel/log.h>
 #include <mcsos/kernel/panic.h>
 #include <mcsos/kernel/version.h>
+#include <mcsos/kernel/pmm.h>
 
 extern char __kernel_start[];
 extern char __kernel_end[];
+static struct pmm_state kernel_pmm;
+
+static uint8_t kernel_pmm_bitmap[PMM_BITMAP_BYTES]
+    __attribute__((aligned(4096)));
+
+static struct boot_mem_region demo_regions[] = {
+    {
+        .base = 0x00100000,
+        .length = 0x03F00000,
+        .type = BOOT_MEM_USABLE
+    }
+};
 
 static void m4_selftest(void) {
     KERNEL_ASSERT(__kernel_end > __kernel_start);
@@ -38,7 +51,28 @@ void kmain(void) {
     log_key_value_hex64("rflags_before_idt", cpu_read_rflags());
     x86_64_idt_init();
     m4_selftest();
-    
+
+bool ok = pmm_init_from_map(
+        &kernel_pmm,
+        demo_regions,
+        1,
+        kernel_pmm_bitmap,
+        sizeof(kernel_pmm_bitmap),
+        PMM_MAX_PHYS_BYTES
+    );
+
+    if (!ok) {
+        KERNEL_PANIC("PMM init failed", 0x504D4Du);
+    }
+
+    log_writeln("[M6] PMM initialized");
+
+    uint64_t frame = pmm_alloc_frame(&kernel_pmm);
+
+    log_write("[M6] sample frame = ");
+    log_key_value_hex64("", frame);
+
+    pmm_free_frame(&kernel_pmm, frame);    
     /* 4. Init PIC (M5) */
     pic_remap(PIC_MASTER_OFFSET, PIC_SLAVE_OFFSET);
     pic_mask_all();
