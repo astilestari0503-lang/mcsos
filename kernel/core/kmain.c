@@ -7,10 +7,13 @@
 #include <mcsos/kernel/panic.h>
 #include <mcsos/kernel/version.h>
 #include <mcsos/kernel/pmm.h>
+#include <mcsos/kernel/vmm.h>
 
 extern char __kernel_start[];
 extern char __kernel_end[];
 static struct pmm_state kernel_pmm;
+static struct vmm_space kernel_space;
+static uint64_t hhdm_offset = 0;
 
 static uint8_t kernel_pmm_bitmap[PMM_BITMAP_BYTES]
     __attribute__((aligned(4096)));
@@ -22,7 +25,6 @@ static struct boot_mem_region demo_regions[] = {
         .type = BOOT_MEM_USABLE
     }
 };
-
 static void m4_selftest(void) {
     KERNEL_ASSERT(__kernel_end > __kernel_start);
     KERNEL_ASSERT(sizeof(uintptr_t) == 8u);
@@ -32,6 +34,27 @@ static void m4_selftest(void) {
     log_writeln("[M4] selftest: IDT invariants passed");
 }
 
+static uint64_t kernel_vmm_alloc(void *ctx) {
+    (void)ctx;
+    return pmm_alloc_frame(&kernel_pmm);
+}
+
+static void kernel_vmm_free(void *ctx, uint64_t frame_paddr) {
+    (void)ctx;
+    pmm_free_frame(&kernel_pmm, frame_paddr);
+}
+
+static void *kernel_phys_to_virt(void *ctx, uint64_t paddr) {
+    uint64_t offset = *(uint64_t *)ctx;
+    return (void *)(offset + paddr);
+}
+
+static void memzero(void *ptr, uint64_t size) {
+    uint8_t *p = (uint8_t *)ptr;
+    for (uint64_t i = 0; i < size; i++) {
+        p[i] = 0;
+    }
+}
 void kmain(void) {
     /* 1. Matikan interrupt selama init */
     cpu_cli();
@@ -72,7 +95,37 @@ bool ok = pmm_init_from_map(
     log_write("[M6] sample frame = ");
     log_key_value_hex64("", frame);
 
-    pmm_free_frame(&kernel_pmm, frame);    
+    pmm_free_frame(&kernel_pmm, frame);
+hhdm_offset = 0xFFFF800000000000ULL;
+
+    uint64_t root = pmm_alloc_frame(&kernel_pmm);
+
+    if (root == PMM_INVALID_FRAME) {
+        KERNEL_PANIC("M7: cannot allocate root page table", 0x4D37u);
+    }
+
+    void *root_virt = kernel_phys_to_virt(&hhdm_offset, root);
+    memzero(root_virt, 4096);
+
+    int rc = vmm_space_init(
+        &kernel_space,
+        root,
+        &hhdm_offset,
+        kernel_vmm_alloc,
+        kernel_vmm_free,
+        kernel_phys_to_virt
+    );
+
+    if (rc != VMM_MAP_OK) {
+        KERNEL_PANIC("M7: vmm_space_init failed", 0x4D37u);
+    }
+
+    log_writeln("[M7] VMM core initialized");
+    log_writeln("[M7] ready for QEMU smoke test");
+    log_writeln("[M7] triggering controlled page fault");
+    volatile uint64_t *bad = (uint64_t *)0x0;
+    *bad = 0xdeadbeef;
+
     /* 4. Init PIC (M5) */
     pic_remap(PIC_MASTER_OFFSET, PIC_SLAVE_OFFSET);
     pic_mask_all();

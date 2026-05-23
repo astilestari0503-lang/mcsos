@@ -1,9 +1,11 @@
 #include <stdint.h>
+#include <mcsos/arch/cpu.h>
 #include <mcsos/arch/idt.h>
 #include <mcsos/arch/pic.h>
 #include <mcsos/arch/pit.h>
 #include <mcsos/kernel/log.h>
 #include <mcsos/kernel/panic.h>
+#include <mcsos/kernel/vmm.h>
 
 static const char *exception_names[32] = {
     "#DE Divide Error", "#DB Debug", "NMI Interrupt", "#BP Breakpoint",
@@ -39,9 +41,47 @@ static void log_trap_frame(const x86_64_trap_frame_t *frame) {
     log_key_value_hex64("trap_rflags", frame->rflags);
 }
 
+static void page_fault_dump(uint64_t error_code,
+                            const x86_64_trap_frame_t *tf) {
+    uint64_t cr2 = vmm_read_cr2();
+
+    log_writeln("#PF page fault");
+
+    log_write("cr2=");
+    log_key_value_hex64("", cr2);
+
+    log_write("error=");
+    log_key_value_hex64("", error_code);
+
+    log_write("rip=");
+    log_key_value_hex64("", tf->rip);
+
+    log_write("present/protection=");
+    log_writeln((error_code & 1ULL) ? "true" : "false");
+
+    log_write("write=");
+    log_writeln((error_code & 2ULL) ? "true" : "false");
+
+    log_write("user=");
+    log_writeln((error_code & 4ULL) ? "true" : "false");
+
+    log_write("reserved=");
+    log_writeln((error_code & 8ULL) ? "true" : "false");
+
+    log_write("instruction_fetch=");
+    log_writeln((error_code & 16ULL) ? "true" : "false");
+}
+
 void x86_64_trap_dispatch(x86_64_trap_frame_t *frame) {
     KERNEL_ASSERT(frame != (x86_64_trap_frame_t *)0);
     ++trap_count;
+
+if (frame->vector == 14) {
+    page_fault_dump(frame->error_code, frame);
+    for (;;) {
+        cpu_hlt();
+    }
+}
 
     /* IRQ dari PIC: vector 32-47 (M5) */
     if (frame->vector >= 0x20u && frame->vector < 0x30u) {

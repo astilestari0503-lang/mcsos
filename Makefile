@@ -164,6 +164,16 @@ grade: all
 >grep -q 'x86_64_trap_dispatch' build/kernel.syms.txt
 >@echo "M5 static grade: PASS"
 
+m7-host-test:
+>mkdir -p build
+>cc -std=c17 \
+>-DMCSOS_HOST_TEST \
+>-Ikernel/include \
+>kernel/core/vmm.c \
+>tests/test_vmm_host.c \
+>-o build/test_vmm_host
+check: m7-host-test
+>./build/test_vmm_host
 clean:
 >rm -rf $(BUILD_DIR)
 
