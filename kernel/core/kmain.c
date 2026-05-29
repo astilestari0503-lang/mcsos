@@ -7,13 +7,19 @@
 #include <mcsos/kernel/panic.h>
 #include <mcsos/kernel/version.h>
 #include <mcsos/kernel/pmm.h>
+#include "mcsos/kmem.h"
 #include <mcsos/kernel/vmm.h>
+#include <mcsos/kernel/serial.h>
 
 extern char __kernel_start[];
 extern char __kernel_end[];
 static struct pmm_state kernel_pmm;
 static struct vmm_space kernel_space;
 static uint64_t hhdm_offset = 0;
+#define M8_BOOT_HEAP_SIZE (64u * 1024u)
+
+static unsigned char m8_boot_heap[M8_BOOT_HEAP_SIZE]
+    __attribute__((aligned(4096)));
 
 static uint8_t kernel_pmm_bitmap[PMM_BITMAP_BYTES]
     __attribute__((aligned(4096)));
@@ -54,6 +60,38 @@ static void memzero(void *ptr, uint64_t size) {
     for (uint64_t i = 0; i < size; i++) {
         p[i] = 0;
     }
+}
+static void m8_heap_bootstrap(void) {
+    int rc = kmem_init(m8_boot_heap, sizeof(m8_boot_heap));
+
+    if (rc != 0) {
+        KERNEL_PANIC("M8 kmem_init failed", rc);
+    }
+
+    void *probe = kmem_alloc(128);
+
+    if (probe == 0) {
+        KERNEL_PANIC("M8 kmem_alloc probe failed", 0);
+    }
+
+    if (kmem_free_checked(probe) != 0) {
+        KERNEL_PANIC("M8 kmem_free_checked probe failed", 0);
+    }
+
+    kmem_stats_t st;
+    kmem_get_stats(&st);
+
+    log_writeln("[M8] kmem initialized");
+
+    serial_write_string("[M8] total=");
+    serial_write_dec64(st.total_bytes);
+    serial_write_string(" free=");
+    serial_write_dec64(st.free_bytes);
+    serial_write_string(" largest=");
+    serial_write_dec64(st.largest_free);
+    serial_write_string(" blocks=");
+    serial_write_dec64(st.block_count);
+    serial_write_string("\n");
 }
 void kmain(void) {
     /* 1. Matikan interrupt selama init */
@@ -120,12 +158,11 @@ hhdm_offset = 0xFFFF800000000000ULL;
         KERNEL_PANIC("M7: vmm_space_init failed", 0x4D37u);
     }
 
-    log_writeln("[M7] VMM core initialized");
-    log_writeln("[M7] ready for QEMU smoke test");
-    log_writeln("[M7] triggering controlled page fault");
-    volatile uint64_t *bad = (uint64_t *)0x0;
-    *bad = 0xdeadbeef;
+log_writeln("[M7] VMM core initialized");
 
+m8_heap_bootstrap();
+
+log_writeln("[M8] checkpoint reached");
     /* 4. Init PIC (M5) */
     pic_remap(PIC_MASTER_OFFSET, PIC_SLAVE_OFFSET);
     pic_mask_all();

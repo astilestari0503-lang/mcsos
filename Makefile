@@ -132,6 +132,7 @@ $(PANIC_KERNEL): $(PANIC_OBJ) linker.ld
 >$(LD) $(LDFLAGS) -Map=$(PANIC_MAP) -o $@ $(PANIC_OBJ)
 
 inspect: $(KERNEL)
+>mkdir -p $(BUILD_DIR)
 #>tools/scripts/m4_audit_elf.sh build/kernel.elf
 >$(READELF) -h $(KERNEL) > $(BUILD_DIR)/kernel.readelf.header.txt
 >$(READELF) -l $(KERNEL) > $(BUILD_DIR)/kernel.readelf.programs.txt
@@ -179,3 +180,31 @@ clean:
 
 distclean: clean
 >rm -rf iso_root limine
+
+CC ?= clang
+CFLAGS_COMMON := -std=c17 -Wall -Wextra -Werror -Iinclude
+CFLAGS_KERNEL := $(CFLAGS_COMMON) -ffreestanding -fno-builtin -fno-stack-protector -mno-red-zone
+BUILD_DIR := build/m8
+
+.PHONY: m8-clean m8-kmem-host-test m8-kmem-freestanding m8-audit m8-all
+
+m8-clean:
+>$(RM) -r $(BUILD_DIR)
+
+$(BUILD_DIR):
+>mkdir -p $(BUILD_DIR)
+
+m8-kmem-freestanding: | $(BUILD_DIR)
+>$(CC) $(CFLAGS_KERNEL) -c kernel/mm/kmem.c -o $(BUILD_DIR)/kmem.freestanding.o
+
+m8-kmem-host-test: | $(BUILD_DIR)
+>$(CC) $(CFLAGS_COMMON) tests/test_kmem.c kernel/mm/kmem.c -o $(BUILD_DIR)/test_kmem
+>./$(BUILD_DIR)/test_kmem | tee $(BUILD_DIR)/test_kmem.log
+
+m8-audit: m8-kmem-freestanding
+>nm -u $(BUILD_DIR)/kmem.freestanding.o | tee $(BUILD_DIR)/nm_u.txt
+>test ! -s $(BUILD_DIR)/nm_u.txt
+>readelf -h $(BUILD_DIR)/kmem.freestanding.o > $(BUILD_DIR)/readelf_h.txt
+>objdump -dr $(BUILD_DIR)/kmem.freestanding.o > $(BUILD_DIR)/kmem.objdump.txt
+
+m8-all: m8-kmem-host-test m8-audit
