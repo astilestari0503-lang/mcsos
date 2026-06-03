@@ -182,7 +182,7 @@ distclean: clean
 >rm -rf iso_root limine
 
 CC ?= clang
-CFLAGS_COMMON := -std=c17 -Wall -Wextra -Werror -Iinclude
+CFLAGS_COMMON := -std=c17 -Wall -Wextra -Werror -Ikernel/include
 CFLAGS_KERNEL := $(CFLAGS_COMMON) -ffreestanding -fno-builtin -fno-stack-protector -mno-red-zone
 BUILD_DIR := build/m8
 
