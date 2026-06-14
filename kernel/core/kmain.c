@@ -11,6 +11,7 @@
 #include <mcsos/kernel/vmm.h>
 #include <mcsos/kernel/serial.h>
 #include "mcsos_thread.h"
+#include <mcsos/syscall.h>
 
 extern char __kernel_start[];
 extern char __kernel_end[];
@@ -40,6 +41,49 @@ static mcsos_thread_t    g_thread_a;
 static mcsos_thread_t    g_thread_b;
 static unsigned char g_stack_a[8192] __attribute__((aligned(16)));
 static unsigned char g_stack_b[8192] __attribute__((aligned(16)));
+
+/* M10 syscall callbacks */
+
+static uint64_t k_get_ticks(void)
+{
+    return g_sched.ticks;
+}
+
+static void k_yield_current(void)
+{
+    (void)mcsos_sched_yield(&g_sched);
+}
+
+static void k_exit_current(int code)
+{
+    if (g_sched.current != 0) {
+        g_sched.current->exit_code = code;
+        g_sched.current->state = MCSOS_THREAD_ZOMBIE;
+    }
+}
+
+static int64_t k_write_serial(
+    const char *buf,
+    size_t len
+)
+{
+    if (buf == 0) {
+        return -1;
+    }
+
+    for (size_t i = 0; i < len; i++) {
+
+        char tmp[2];
+
+        tmp[0] = buf[i];
+        tmp[1] = '\0';
+
+        serial_write_string(tmp);
+    }
+
+    return (int64_t)len;
+}
+
 
 static void m4_selftest(void) {
     KERNEL_ASSERT(__kernel_end > __kernel_start);
@@ -113,6 +157,41 @@ static void demo_thread_b(void *arg) {
         log_writeln("[M9] thread B tick");
         mcsos_sched_yield(&g_sched);
     }
+}
+
+static void m10_syscall_smoke_direct(void)
+{
+    int64_t r;
+
+    r = mcsos_syscall_dispatch(
+        MCSOS_SYS_PING,
+        0,0,0,0,0,0
+    );
+
+    if (r != 0x2605020A) {
+        KERNEL_PANIC(
+            "M10 syscall ping failed",
+            0
+        );
+    }
+
+    log_writeln("[M10] syscall ping ok");
+
+    r = mcsos_syscall_dispatch(
+        MCSOS_SYS_GET_TICKS,
+        0,0,0,0,0,0
+    );
+
+    if (r < 0) {
+        KERNEL_PANIC(
+            "M10 syscall get_ticks failed",
+            (uint64_t)(-r)
+        );
+    }
+
+    log_writeln("[M10] syscall get_ticks ok");
+
+    log_writeln("[M10] syscall smoke done");
 }
 
 void kmain(void) {
@@ -208,7 +287,28 @@ void kmain(void) {
     mcsos_sched_enqueue(&g_sched, &g_thread_a);
     mcsos_sched_enqueue(&g_sched, &g_thread_b);
     log_writeln("[M9] scheduler initialized");
-    mcsos_sched_yield(&g_sched);
+
+mcsos_syscall_ops_t ops = {
+    .get_ticks = k_get_ticks,
+    .yield_current = k_yield_current,
+    .exit_current = k_exit_current,
+    .write_serial = k_write_serial
+};
+
+mcsos_syscall_init(&ops);
+
+mcsos_syscall_set_user_region(
+    (mcsos_user_region_t){
+        .base  = 0x0000000000400000ULL,
+        .limit = 0x0000800000000000ULL
+    }
+);
+
+log_writeln("[M10] syscall init");
+
+m10_syscall_smoke_direct();
+
+   mcsos_sched_yield(&g_sched);
 
     for (;;) {
         cpu_hlt();
