@@ -1,0 +1,222 @@
+.
+├── Makefile
+├── README.md
+├── arch
+│   └── x86_64
+│       └── context_switch.S
+├── build
+│   ├── kernel.disasm.txt
+│   ├── kernel.elf
+│   ├── kernel.map
+│   ├── kernel.syms.txt
+│   ├── m10
+│   │   ├── m10_syscall_combined.o
+│   │   ├── nm_undefined.log
+│   │   ├── objdump.log
+│   │   ├── readelf_header.log
+│   │   ├── sha256.log
+│   │   ├── syscall.o
+│   │   ├── syscall_entry.o
+│   │   └── test_syscall_host
+│   ├── m8
+│   │   ├── kernel.readelf.header.txt
+│   │   └── kernel.readelf.programs.txt
+│   ├── mcsos.iso
+│   ├── mcsos.iso.sha256
+│   ├── normal
+│   │   └── kernel
+│   └── qemu-serial.log
+├── configs
+│   └── limine
+│       └── limine.conf
+├── docs
+│   ├── adr
+│   │   └── ADR-0001-toolchain-and-boot-baseline.md
+│   ├── architecture
+│   │   ├── invariants.md
+│   │   ├── overview.md
+│   │   └── qemu_baseline.md
+│   ├── governance
+│   │   └── risk_register.md
+│   ├── readiness
+│   │   └── M1-toolchain.md
+│   ├── reports
+│   │   └── M0-laporan.md
+│   ├── requirements
+│   │   ├── assumptions_and_nongoals.md
+│   │   └── system_requirements.md
+│   ├── security
+│   │   ├── threat_model.md
+│   │   └── toolchain_threat_model.md
+│   └── testing
+│       └── verification_matrix.md
+├── evidence
+│   ├── M3
+│   │   ├── kernel.readelf.header.txt
+│   │   ├── kernel.readelf.programs.txt
+│   │   ├── kernel.syms.txt
+│   │   ├── m3_audit_disasm.txt
+│   │   ├── m3_audit_readelf_header.txt
+│   │   ├── m3_audit_readelf_programs.txt
+│   │   ├── m3_audit_symbols.txt
+│   │   └── manifest.txt
+│   ├── M4
+│   │   ├── kernel.disasm.txt
+│   │   ├── kernel.elf
+│   │   ├── kernel.map
+│   │   ├── kernel.readelf.header.txt
+│   │   ├── kernel.readelf.programs.txt
+│   │   ├── kernel.syms.txt
+│   │   ├── m4-qemu-serial.log
+│   │   └── manifest.txt
+│   ├── m5-failure
+│   │   ├── kernel.disasm.txt
+│   │   ├── kernel.elf
+│   │   ├── kernel.map
+│   │   ├── kernel.readelf.header.txt
+│   │   ├── kernel.readelf.programs.txt
+│   │   └── kernel.syms.txt
+│   └── m9
+│       ├── preflight_m9.log
+│       └── qemu_m9.log
+├── include
+│   ├── mcsos
+│   │   └── syscall.h
+│   ├── mcsos_thread.h
+│   └── type.h
+├── iso_root
+│   ├── EFI
+│   │   └── BOOT
+│   └── boot
+│       ├── grub
+│       ├── kernel.elf
+│       └── limine
+├── kernel
+│   ├── arch
+│   │   └── x86_64
+│   ├── core
+│   │   ├── kmain.c
+│   │   ├── log.c
+│   │   ├── panic.c
+│   │   ├── pmm.c
+│   │   ├── serial.c
+│   │   ├── trap.c
+│   │   └── vmm.c
+│   ├── include
+│   │   └── mcsos
+│   ├── lib
+│   │   └── memory.c
+│   ├── mcsos_thread.c
+│   ├── mm
+│   │   └── kmem.c
+│   └── syscall
+│       ├── syscall.c
+│       └── syscall_entry.S
+├── kmem.o
+├── limine
+│   ├── BOOTAA64.EFI
+│   ├── BOOTIA32.EFI
+│   ├── BOOTRISCV64.EFI
+│   ├── BOOTX64.EFI
+│   ├── LICENSE
+│   ├── Makefile
+│   ├── install-sh
+│   ├── limine
+│   ├── limine-bios-cd.bin
+│   ├── limine-bios-hdd.h
+│   ├── limine-bios-pxe.bin
+│   ├── limine-bios.sys
+│   ├── limine-uefi-cd.bin
+│   ├── limine.c
+│   ├── limine.exe
+│   └── limine.h
+├── linker.ld
+├── logs
+│   ├── m10_qemu_run.log
+│   ├── m10_serial.log
+│   └── m10_sha256.txt
+├── m6test
+│   ├── Makefile.m6.example
+│   ├── build
+│   │   ├── m6_build.log
+│   │   ├── pmm.o
+│   │   ├── pmm.objdump.txt
+│   │   ├── pmm.undefined.txt
+│   │   └── test_pmm_host
+│   ├── include
+│   │   ├── pmm.h
+│   │   └── types.h
+│   ├── scripts
+│   │   └── check_m6_static.sh
+│   ├── src
+│   │   └── pmm.c
+│   └── tests
+│       └── test_pmm_host.c
+├── scripts
+│   ├── check_m6_static.sh
+│   ├── check_m8_kmem.sh
+│   ├── grade_m7.sh
+│   ├── m7_gdb.cmd
+│   └── m7_preflight.sh
+├── smoke
+│   └── freestanding.c
+├── src
+│   └── pmm.c
+├── tests
+│   ├── test_kmem.c
+│   ├── test_pmm_host.c
+│   ├── test_scheduler.c
+│   ├── test_syscall_host.c
+│   ├── test_vmm_host.c
+│   └── toolchain
+│       └── freestanding_probe.c
+├── third_party
+│   └── limine
+│       ├── BOOTAA64.EFI
+│       ├── BOOTIA32.EFI
+│       ├── BOOTLOONGARCH64.EFI
+│       ├── BOOTRISCV64.EFI
+│       ├── BOOTX64.EFI
+│       ├── LICENSE
+│       ├── Makefile
+│       ├── install-sh
+│       ├── limine
+│       ├── limine-bios-cd.bin
+│       ├── limine-bios-hdd.h
+│       ├── limine-bios-pxe.bin
+│       ├── limine-bios.sys
+│       ├── limine-uefi-cd.bin
+│       ├── limine.c
+│       ├── limine.exe
+│       └── limine.h
+├── tools
+│   ├── check_env.sh
+│   ├── gdb_m3.gdb
+│   ├── gdb_m4.gdb
+│   └── scripts
+│       ├── check_toolchain.sh
+│       ├── collect_meta.sh
+│       ├── fetch_limine.sh
+│       ├── grade_m2.sh
+│       ├── grade_m3.sh
+│       ├── grade_m4.sh
+│       ├── inspect_kernel.sh
+│       ├── m2_preflight.sh
+│       ├── m3_audit_elf.sh
+│       ├── m3_collect_evidence.sh
+│       ├── m3_preflight.sh
+│       ├── m3_qemu_debug.sh
+│       ├── m3_qemu_run.sh
+│       ├── m4_audit_elf.sh
+│       ├── m4_collect_evidence.sh
+│       ├── m4_preflight.sh
+│       ├── m4_qemu_run.sh
+│       ├── make_iso.sh
+│       ├── proof_compile.sh
+│       ├── qemu_probe.sh
+│       ├── repro_check.sh
+│       ├── run_qemu.sh
+│       └── run_qemu_debug.sh
+└── tree_m10.txt
+
+58 directories, 162 files
