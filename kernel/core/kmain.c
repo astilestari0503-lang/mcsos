@@ -12,6 +12,10 @@
 #include <mcsos/kernel/serial.h>
 #include "mcsos_thread.h"
 #include <mcsos/syscall.h>
+#include <mcsos/user/m11_elf_loader.h>
+
+/* M11 integration test — defined in kernel/user/m11_integration.c */
+void m11_integration_test(void);
 
 extern char __kernel_start[];
 extern char __kernel_end[];
@@ -308,8 +312,10 @@ log_writeln("[M10] syscall init");
 
 m10_syscall_smoke_direct();
 
-   mcsos_sched_yield(&g_sched);
+    /* M11: ELF64 user program loader integration test */
+    m11_integration_test();
 
+    mcsos_sched_yield(&g_sched);
     for (;;) {
         cpu_hlt();
     }
