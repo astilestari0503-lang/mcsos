@@ -17,6 +17,9 @@
 /* M11 integration test — defined in kernel/user/m11_integration.c */
 void m11_integration_test(void);
 
+/* M12 sync selftest — defined in kernel/m12_selftest.c */
+void m12_sync_selftest(void);
+
 extern char __kernel_start[];
 extern char __kernel_end[];
 static struct pmm_state kernel_pmm;
@@ -314,6 +317,9 @@ m10_syscall_smoke_direct();
 
     /* M11: ELF64 user program loader integration test */
     m11_integration_test();
+
+    /* M12: synchronization primitives selftest */
+    m12_sync_selftest();
 
     mcsos_sched_yield(&g_sched);
     for (;;) {

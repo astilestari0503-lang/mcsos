@@ -1,0 +1,88 @@
+
+build/m12/spinlock.o:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000000000 <mcs_spin_init>:
+   0:	55                   	push   %rbp
+   1:	48 89 e5             	mov    %rsp,%rbp
+   4:	48 85 ff             	test   %rdi,%rdi
+   7:	74 0d                	je     16 <mcs_spin_init+0x16>
+   9:	c7 07 00 00 00 00    	movl   $0x0,(%rdi)
+   f:	89 77 04             	mov    %esi,0x4(%rdi)
+  12:	48 89 57 08          	mov    %rdx,0x8(%rdi)
+  16:	5d                   	pop    %rbp
+  17:	c3                   	ret
+  18:	0f 1f 84 00 00 00 00 	nopl   0x0(%rax,%rax,1)
+  1f:	00 
+
+0000000000000020 <mcs_spin_try_lock>:
+  20:	55                   	push   %rbp
+  21:	48 89 e5             	mov    %rsp,%rbp
+  24:	48 85 ff             	test   %rdi,%rdi
+  27:	74 1b                	je     44 <mcs_spin_try_lock+0x24>
+  29:	b9 01 00 00 00       	mov    $0x1,%ecx
+  2e:	31 c0                	xor    %eax,%eax
+  30:	f0 0f b1 0f          	lock cmpxchg %ecx,(%rdi)
+  34:	b8 00 00 00 00       	mov    $0x0,%eax
+  39:	0f 94 c0             	sete   %al
+  3c:	c1 e0 04             	shl    $0x4,%eax
+  3f:	83 c0 f0             	add    $0xfffffff0,%eax
+  42:	5d                   	pop    %rbp
+  43:	c3                   	ret
+  44:	b8 ea ff ff ff       	mov    $0xffffffea,%eax
+  49:	5d                   	pop    %rbp
+  4a:	c3                   	ret
+  4b:	0f 1f 44 00 00       	nopl   0x0(%rax,%rax,1)
+
+0000000000000050 <mcs_spin_lock>:
+  50:	48 85 ff             	test   %rdi,%rdi
+  53:	74 2f                	je     84 <mcs_spin_lock+0x34>
+  55:	b8 01 00 00 00       	mov    $0x1,%eax
+  5a:	87 07                	xchg   %eax,(%rdi)
+  5c:	85 c0                	test   %eax,%eax
+  5e:	74 24                	je     84 <mcs_spin_lock+0x34>
+  60:	55                   	push   %rbp
+  61:	48 89 e5             	mov    %rsp,%rbp
+  64:	eb 0c                	jmp    72 <mcs_spin_lock+0x22>
+  66:	66 2e 0f 1f 84 00 00 	cs nopw 0x0(%rax,%rax,1)
+  6d:	00 00 00 
+  70:	f3 90                	pause
+  72:	8b 07                	mov    (%rdi),%eax
+  74:	85 c0                	test   %eax,%eax
+  76:	75 f8                	jne    70 <mcs_spin_lock+0x20>
+  78:	b8 01 00 00 00       	mov    $0x1,%eax
+  7d:	87 07                	xchg   %eax,(%rdi)
+  7f:	85 c0                	test   %eax,%eax
+  81:	75 ef                	jne    72 <mcs_spin_lock+0x22>
+  83:	5d                   	pop    %rbp
+  84:	c3                   	ret
+  85:	66 66 2e 0f 1f 84 00 	data16 cs nopw 0x0(%rax,%rax,1)
+  8c:	00 00 00 00 
+
+0000000000000090 <mcs_spin_unlock>:
+  90:	55                   	push   %rbp
+  91:	48 89 e5             	mov    %rsp,%rbp
+  94:	48 85 ff             	test   %rdi,%rdi
+  97:	74 06                	je     9f <mcs_spin_unlock+0xf>
+  99:	c7 07 00 00 00 00    	movl   $0x0,(%rdi)
+  9f:	5d                   	pop    %rbp
+  a0:	c3                   	ret
+  a1:	66 66 66 66 66 66 2e 	data16 data16 data16 data16 data16 cs nopw 0x0(%rax,%rax,1)
+  a8:	0f 1f 84 00 00 00 00 
+  af:	00 
+
+00000000000000b0 <mcs_spin_is_locked>:
+  b0:	55                   	push   %rbp
+  b1:	48 89 e5             	mov    %rsp,%rbp
+  b4:	48 85 ff             	test   %rdi,%rdi
+  b7:	74 09                	je     c2 <mcs_spin_is_locked+0x12>
+  b9:	8b 07                	mov    (%rdi),%eax
+  bb:	85 c0                	test   %eax,%eax
+  bd:	0f 95 c0             	setne  %al
+  c0:	5d                   	pop    %rbp
+  c1:	c3                   	ret
+  c2:	31 c0                	xor    %eax,%eax
+  c4:	5d                   	pop    %rbp
+  c5:	c3                   	ret
