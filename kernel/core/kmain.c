@@ -13,6 +13,7 @@
 #include "mcsos_thread.h"
 #include <mcsos/syscall.h>
 #include <mcsos/user/m11_elf_loader.h>
+#include "mcs_vfs.h"
 
 /* M11 integration test — defined in kernel/user/m11_integration.c */
 void m11_integration_test(void);
@@ -43,6 +44,7 @@ static struct boot_mem_region demo_regions[] = {
 
 /* M9: scheduler global state */
 static mcsos_scheduler_t g_sched;
+static mcs_ramfs_t kernel_ramfs;
 static mcsos_thread_t    g_boot_thread;
 static mcsos_thread_t    g_thread_a;
 static mcsos_thread_t    g_thread_b;
@@ -200,6 +202,56 @@ static void m10_syscall_smoke_direct(void)
 
     log_writeln("[M10] syscall smoke done");
 }
+static void m13_vfs_smoke_test(void)
+{
+    mcs_process_t proc;
+    char buf[32];
+    int fd;
+    mcs_ssize_t n;
+
+    mcs_ramfs_init(&kernel_ramfs);
+
+    if (mcs_ramfs_seed_file(
+            &kernel_ramfs,
+            "/hello.txt",
+            (const uint8_t *)"hello-mcsos",
+            11) != MCS_OK)
+    {
+        KERNEL_PANIC("M13 seed file failed", 0);
+    }
+
+    proc.pid = 13;
+    mcs_fd_table_init(&proc.fd_table);
+
+    fd = mcs_sys_open(
+        &proc,
+        &kernel_ramfs,
+        "/hello.txt",
+        MCS_O_RDONLY);
+
+    if (fd < 0) {
+        KERNEL_PANIC("M13 open failed", 0);
+    }
+
+    n = mcs_sys_read(
+        &proc,
+        fd,
+        buf,
+        11);
+
+    if (n != 11) {
+        KERNEL_PANIC("M13 read failed", 0);
+    }
+
+    buf[11] = '\0';
+
+    log_writeln("[M13] RAMFS smoke PASS");
+    serial_write_string("[M13] data=");
+    serial_write_string(buf);
+    serial_write_string("\n");
+
+    mcs_sys_close(&proc, fd);
+}
 
 void kmain(void) {
     /* 1. Matikan interrupt selama init */
@@ -315,13 +367,16 @@ log_writeln("[M10] syscall init");
 
 m10_syscall_smoke_direct();
 
-    /* M11: ELF64 user program loader integration test */
-    m11_integration_test();
+m11_integration_test();
 
-    /* M12: synchronization primitives selftest */
-    m12_sync_selftest();
+/* M12: synchronization primitives selftest */
+m12_sync_selftest();
 
-    mcsos_sched_yield(&g_sched);
+/* M13: VFS/RAMFS smoke test */
+m13_vfs_smoke_test();
+
+mcsos_sched_yield(&g_sched);
+
     for (;;) {
         cpu_hlt();
     }
