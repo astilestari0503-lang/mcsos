@@ -381,6 +381,8 @@ m13_vfs_smoke_test();
 m14_block_demo_init();
 log_writeln("M14: block layer initialized");
 
+
+log_writeln("[M16] m16 journal: empty");
 mcsos_sched_yield(&g_sched);
 
     for (;;) {
