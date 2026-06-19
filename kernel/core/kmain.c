@@ -15,11 +15,14 @@
 #include <mcsos/user/m11_elf_loader.h>
 #include "mcs_vfs.h"
 
+
 /* M11 integration test — defined in kernel/user/m11_integration.c */
 void m11_integration_test(void);
 
 /* M12 sync selftest — defined in kernel/m12_selftest.c */
 void m12_sync_selftest(void);
+
+extern void m14_block_demo_init(void);
 
 extern char __kernel_start[];
 extern char __kernel_end[];
@@ -374,6 +377,9 @@ m12_sync_selftest();
 
 /* M13: VFS/RAMFS smoke test */
 m13_vfs_smoke_test();
+
+m14_block_demo_init();
+log_writeln("M14: block layer initialized");
 
 mcsos_sched_yield(&g_sched);
 
